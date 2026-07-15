@@ -1,0 +1,93 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-gate:
+    runs-on: ubuntu-latest
+
+    env:
+      # payfuzz signs each delivery and the victims verify with the SAME value,
+      # so any consistent secret works. CI has no Stripe account and never talks
+      # to the network — this dummy keeps the whole run offline.
+      PAYFUZZ_WHSEC: whsec_ci_dummy_offline_value
+      # Deterministic, colourless output for logs.
+      NO_COLOR: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests (signer round-trips against Stripe's own verifier)
+        run: npm test
+
+      # ---- The badge means something: assert the tool CATCHES the broken app ----
+      #
+      # The naive victim is SUPPOSED to fail. Success for this job is payfuzz
+      # detecting that (exit 1). Victims run sequentially, each alone and quiet,
+      # so the intermittent concurrency scenario (02) fires reliably — and even
+      # if it happened to dedup, the five deterministic scenarios keep exit 1.
+      - name: Naive victim — payfuzz MUST catch it (assert exit 1)
+        run: |
+          npx tsx victims/naive/index.ts > naive.log 2>&1 & echo $! > naive.pid
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:4242/__payfuzz/state >/dev/null 2>&1 && break
+            sleep 0.5
+          done
+          set +e
+          node dist/cli.js run --target http://localhost:4242 --ci --out payfuzz-report-naive.html
+          code=$?
+          set -e
+          kill "$(cat naive.pid)" 2>/dev/null || true
+          echo "naive payfuzz exit code: $code (expected 1)"
+          if [ "$code" -ne 1 ]; then
+            echo "::error::payfuzz did NOT flag the naive handler — the merge gate is broken"
+            exit 1
+          fi
+          echo "✓ payfuzz caught the naive handler (exit 1)"
+        shell: bash
+
+      - name: Run gate against hardened (assert exit 0)
+        run: |
+          npx tsx victims/hardened/index.ts > hardened.log 2>&1 & echo $! > hardened.pid
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:4343/__payfuzz/state >/dev/null 2>&1 && break
+            sleep 0.5
+          done
+          set +e
+          node dist/cli.js run --target http://localhost:4343 --ci --out payfuzz-report-hardened.html
+          code=$?
+          set -e
+          kill "$(cat hardened.pid)" 2>/dev/null || true
+          echo "hardened payfuzz exit code: $code (expected 0)"
+          if [ "$code" -ne 0 ]; then
+            echo "::error::payfuzz flagged the hardened handler — it should pass 8/8"
+            exit 1
+          fi
+          echo "✓ payfuzz passed the hardened handler (exit 0)"
+        shell: bash
+
+      - name: Upload payfuzz reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payfuzz-reports
+          path: |
+            payfuzz-report-naive.html
+            payfuzz-report-hardened.html
+          if-no-files-found: warn
