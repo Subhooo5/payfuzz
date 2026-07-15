@@ -1,0 +1,16 @@
+# Published tarball ships the compiled CLI plus the built-in scenario suite
+# and fixtures (so `npx payfuzz run --target <url>` works out of the box).
+# Everything below is repo material, not package material.
+src/
+victims/
+scripts/
+test/
+.github/
+tsconfig.json
+.env.example
+FINDINGS.md
+demo.tape
+demo.gif
+*.db
+*.db-journal
+payfuzz-report.html

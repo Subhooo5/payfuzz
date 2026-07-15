@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Secrets — the real whsec_ lives here; .env.example is the committed template
+.env
+
+# SQLite databases created by the victim apps
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Generated report
+payfuzz-report.html
+
+# Coverage
+coverage/
+
+# OS noise
+.DS_Store
