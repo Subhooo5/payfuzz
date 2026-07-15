@@ -1,0 +1,15 @@
+name: partial_failure_rollback
+description: The wallet credit commits, then the email throws before the event is marked processed; the provider retries and the credit runs again. A correct handler makes credit-and-mark atomic and sends email via an outbox.
+setup:
+  wallet_balance: 0
+  email_fail: true
+deliveries:
+  - event: payment_intent.succeeded
+    fixture: payment_intent.succeeded.json
+    overrides:
+      data.object.amount: 100000
+      data.object.currency: inr
+    faults: [ duplicate: 2 ]
+assert:
+  wallet_balance: 100000
+  events_processed: 1

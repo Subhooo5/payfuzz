@@ -1,0 +1,5 @@
+# Invariants checked after every scenario, on top of each scenario's own assert.
+global_invariants:
+  wallet_balance: ">= 0"                   # money can never be negative
+  events_processed: "== unique_event_ids"  # no event processed twice
+  emails_sent: "<= 1 per unique event"     # at most one receipt per event

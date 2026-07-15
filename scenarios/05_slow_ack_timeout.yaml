@@ -1,0 +1,15 @@
+name: slow_ack_timeout
+description: The handler credits the wallet then blocks 6s on an email; payfuzz times out at 5s and the provider resends, so the work runs twice. A correct handler acks immediately and processes idempotently.
+setup:
+  wallet_balance: 0
+  email_delay_ms: 6000
+deliveries:
+  - event: payment_intent.succeeded
+    fixture: payment_intent.succeeded.json
+    overrides:
+      data.object.amount: 100000
+      data.object.currency: inr
+    faults: [ timeout_retry: 5000ms ]
+assert:
+  wallet_balance: 100000
+  emails_sent: 1

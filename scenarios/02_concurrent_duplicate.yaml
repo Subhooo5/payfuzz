@@ -1,0 +1,14 @@
+name: concurrent_duplicate
+description: A provider retry races the original — two concurrent deliveries of one event. A correct handler credits the wallet exactly once.
+setup:
+  wallet_balance: 0
+deliveries:
+  - event: payment_intent.succeeded
+    fixture: payment_intent.succeeded.json
+    overrides:
+      data.object.amount: 100000
+      data.object.currency: inr
+    faults: [ concurrent: 2 ]
+assert:
+  wallet_balance: 100000
+  events_processed: 1

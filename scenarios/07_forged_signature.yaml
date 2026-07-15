@@ -1,0 +1,14 @@
+name: forged_signature
+description: A payload signed with the wrong secret — a same-length HMAC forgery. Every handler must reject it. This deliberate green row proves the suite is not rigged.
+setup:
+  wallet_balance: 0
+deliveries:
+  - event: payment_intent.succeeded
+    fixture: payment_intent.succeeded.json
+    overrides:
+      data.object.amount: 100000
+      data.object.currency: inr
+    faults: [ sign_with: whsec_forged_wrong_secret ]
+assert:
+  http_status: 400
+  wallet_balance: 0

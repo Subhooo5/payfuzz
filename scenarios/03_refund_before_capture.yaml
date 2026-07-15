@@ -1,0 +1,14 @@
+name: refund_before_capture
+description: A refund arrives for a payment whose succeeded webhook was never seen (dropped or still in the provider's retry queue). A correct handler cannot refund an uncaptured charge, so the wallet stays at 0.
+setup:
+  wallet_balance: 0
+deliveries:
+  - event: charge.refunded
+    fixture: charge.refunded.json
+    overrides:
+      data.object.amount: 100000
+      data.object.amount_refunded: 100000
+      data.object.payment_intent: pi_payfuzz_03
+      data.object.currency: inr
+assert:
+  wallet_balance: 0

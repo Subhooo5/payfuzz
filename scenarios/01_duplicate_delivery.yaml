@@ -1,0 +1,14 @@
+name: duplicate_delivery
+description: The provider redelivers one succeeded event three times (at-least-once delivery). A correct handler credits the wallet exactly once.
+setup:
+  wallet_balance: 0
+deliveries:
+  - event: payment_intent.succeeded
+    fixture: payment_intent.succeeded.json
+    overrides:
+      data.object.amount: 100000
+      data.object.currency: inr
+    faults: [ duplicate: 3 ]
+assert:
+  wallet_balance: 100000
+  events_processed: 1

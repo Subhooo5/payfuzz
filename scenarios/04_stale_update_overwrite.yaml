@@ -1,0 +1,23 @@
+name: stale_update_overwrite
+description: A stale subscription.updated(active) is redelivered after subscription.deleted(canceled). Ordered by the events' own created timestamps the cancel is newer and must win; arrival order must not.
+setup:
+  wallet_balance: 0
+deliveries:
+  # Newer event (created = baseNow), arrives first.
+  - event: customer.subscription.deleted
+    fixture: customer.subscription.deleted.json
+    overrides:
+      data.object.id: sub_payfuzz_04
+      data.object.status: canceled
+  # Older event (created = baseNow-60 via offset), arrives last via the delay.
+  - event: customer.subscription.updated
+    fixture: customer.subscription.updated.json
+    overrides:
+      data.object.id: sub_payfuzz_04
+      data.object.status: active
+    faults:
+      - timestamp_offset: "-60s"
+      - delay: 500ms
+assert:
+  sub_status: canceled
+  sub_id: sub_payfuzz_04

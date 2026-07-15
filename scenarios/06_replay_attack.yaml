@@ -1,0 +1,14 @@
+name: replay_attack
+description: A correctly-signed but 25-hour-old event is replayed. A correct handler rejects it via the signature tolerance window; accepting it mints money from a captured request.
+setup:
+  wallet_balance: 0
+deliveries:
+  - event: payment_intent.succeeded
+    fixture: payment_intent.succeeded.json
+    overrides:
+      data.object.amount: 100000
+      data.object.currency: inr
+    faults: [ timestamp_offset: "-25h" ]
+assert:
+  http_status: 400
+  wallet_balance: 0
