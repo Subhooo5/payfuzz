@@ -7,6 +7,37 @@ adversarial delivery — not that it returns 200, but that the ledger balances.*
 [![npm](https://img.shields.io/npm/v/payfuzz.svg)](https://www.npmjs.com/package/payfuzz)
 [![license](https://img.shields.io/npm/l/payfuzz.svg)](LICENSE)
 
+## The problem, and how payfuzz solves it
+
+**A linter for money-losing bugs.**
+
+**(Note: payfuzz is a testing tool, not a hosted service — it has no API of its own. It replays real Stripe events (captured once via `stripe listen` / `stripe trigger`) as YAML scenarios against any handler that implements the contract below.)**
+
+Every payment provider — Stripe, Razorpay, PayU — delivers webhooks *at least
+once*, never exactly once, and not always in order. A subscription can be
+deleted before its "created" event arrives. A refund can land before the payment
+it refers to. Most handlers are written for the happy path, so in production
+they double-credit wallets, fulfil an order twice, or apply a refund to a
+payment they haven't seen yet.
+
+The classic one is the check-then-process race: two copies of the same event
+arrive at once, both pass the "have I already handled this?" check before either
+records it, and both go through. The money is gone. Almost nobody tests for this
+— because there's been no tool to do it.
+
+Stripe already solved *half* of this problem. Their [Test Clocks](https://docs.stripe.com/api/test_clocks)
+let you fast-forward time, so you can test a year of billing in seconds instead
+of waiting. But that only covers the *timing* half. Nobody built the equivalent
+for the *delivery* half — duplicates, reordering, replays, stale writes,
+slow-ack retries.
+
+That gap is payfuzz. Point it at any webhook handler and it replays real events
+under those exact failure conditions, then checks one thing: **did the money
+stay correct?** It ships with two reference apps — a naive one that loses ₹5,000
+of phantom money across eight scenarios, and a hardened one that loses nothing —
+and both pass 100% of their own unit tests. That's the point: unit tests don't
+catch these bugs. payfuzz does.
+
 payfuzz replays checked-in Stripe events under duplication, concurrency,
 reordering, timeouts, and replay attacks — signing each one itself so it runs
 fully offline — and checks that your wallet balance and ledger are still
@@ -30,18 +61,7 @@ $ payfuzz run --target http://localhost:4343    # hardened handler
   8 passed · 0 failed · ₹0 phantom money created            # exit 0
 ```
 
-Both apps pass 100% of their own unit tests. That sentence is the whole point:
-these bugs don't fail unit tests — they surface only under adversarial delivery,
-which is why they reach production.
-
-> **On `concurrent_duplicate`:** it is a genuine concurrency race. It fires
-> deterministically when run in isolation (30/30 measured) and intermittently
-> within a full run (~5 of 6 runs; when it doesn't fire, the two concurrent
-> deliveries happen to serialize and the handler correctly dedups). That
-> intermittency is the point — it is exactly why such races pass staging and
-> surface in production. The other five failing scenarios are deterministic, so
-> the merge gate (naive → `exit 1`) holds on every run regardless. Full
-> characterization in [FINDINGS.md](FINDINGS.md).
+Phantom money = |actual wallet balance − expected wallet balance|, summed across all failed scenarios.
 
 ## Demo
 
