@@ -5,7 +5,7 @@ adversarial delivery — not that it returns 200, but that the ledger balances.*
 
 [![ci](https://github.com/Subhooo5/payfuzz/actions/workflows/ci.yml/badge.svg)](https://github.com/Subhooo5/payfuzz/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/payfuzz.svg)](https://www.npmjs.com/package/payfuzz)
-[![license](https://img.shields.io/npm/l/payfuzz.svg)](LICENSE)
+[![license](https://img.shields.io/npm/l/payfuzz)](LICENSE)
 
 ## The problem, and how payfuzz solves it
 
