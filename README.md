@@ -63,6 +63,10 @@ $ payfuzz run --target http://localhost:4343    # hardened handler
 
 Phantom money = |actual wallet balance − expected wallet balance|, summed across all failed scenarios.
 
+## Architecture
+<img width="1398" height="3278" alt="payfuzz-architecture" src="https://github.com/user-attachments/assets/8a487299-4597-4894-8ed1-61ae62a7c719" />
+
+
 ## Demo
 
 ![payfuzz demo: naive run creates ₹5,000, hardened run creates ₹0](docs/demo.gif)
